@@ -6,13 +6,29 @@ public class ExampleClass : MonoBehaviour
     private Color selectedColor = Color.white;
     private GameObject selectedShape;
 
+    private float lastTapTime = 0f;
+    private float doubleTapThreshold = 0.3f;
+
     void Update()
     {
-        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+        if (Input.touchCount > 0)
         {
-            Vector3 touchPosition = Camera.main.ScreenToWorldPoint(Input.GetTouch(0).position);
+            Touch touch = Input.GetTouch(0);
+            Vector3 touchPosition = Camera.main.ScreenToWorldPoint(touch.position);
             touchPosition.z = 0;
-            SpawnShape(touchPosition);
+
+            if (touch.phase == TouchPhase.Began)
+            {
+                if (Time.time - lastTapTime < doubleTapThreshold)
+                {
+                    TryDestroyShape(touchPosition);
+                }
+                else
+                {
+                    SpawnShape(touchPosition);
+                }
+                lastTapTime = Time.time;
+            }
         }
     }
 
@@ -22,6 +38,14 @@ public class ExampleClass : MonoBehaviour
         {
             GameObject newShape = Instantiate(selectedShape, position, transform.rotation);
             newShape.GetComponent<SpriteRenderer>().color = selectedColor;
+        }
+    }
+    void TryDestroyShape(Vector3 position)
+    {
+        Collider2D hitCollider = Physics2D.OverlapPoint(position);
+        if (hitCollider != null)
+        {
+            Destroy(hitCollider.gameObject);
         }
     }
 
