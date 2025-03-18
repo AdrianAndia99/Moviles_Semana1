@@ -20,7 +20,7 @@ public class ExampleClass : MonoBehaviour
     {
         if (selectedShape != null)
         {
-            GameObject newShape = Instantiate(selectedShape, position, Quaternion.identity);
+            GameObject newShape = Instantiate(selectedShape, position, transform.rotation);
             newShape.GetComponent<SpriteRenderer>().color = selectedColor;
         }
     }
