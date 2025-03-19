@@ -9,6 +9,8 @@ public class ExampleClass : MonoBehaviour
     private float lastTapTime = 0f;
     private float doubleTapThreshold = 0.3f;
 
+    private GameObject draggedObject = null;
+
     void Update()
     {
         if (Input.touchCount > 0)
@@ -19,15 +21,31 @@ public class ExampleClass : MonoBehaviour
 
             if (touch.phase == TouchPhase.Began)
             {
-                if (Time.time - lastTapTime < doubleTapThreshold)
+                RaycastHit2D hit = Physics2D.Raycast(touchPosition, Vector2.zero);
+                if (hit.collider != null)
                 {
-                    TryDestroyShape(touchPosition);
+                    draggedObject = hit.collider.gameObject;
                 }
                 else
                 {
-                    SpawnShape(touchPosition);
+                    if (Time.time - lastTapTime < doubleTapThreshold)
+                    {
+                        TryDestroyShape(touchPosition);
+                    }
+                    else
+                    {
+                        SpawnShape(touchPosition);
+                    }
+                    lastTapTime = Time.time;
                 }
-                lastTapTime = Time.time;
+            }
+            else if (touch.phase == TouchPhase.Moved && draggedObject != null)
+            {
+                draggedObject.transform.position = touchPosition;
+            }
+            else if (touch.phase == TouchPhase.Ended)
+            {
+                draggedObject = null;
             }
         }
     }
