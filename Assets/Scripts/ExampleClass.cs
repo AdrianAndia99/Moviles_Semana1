@@ -1,15 +1,28 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class ExampleClass : MonoBehaviour
 {
-    public GameObject[] shapePrefabs;
-    private Color selectedColor = Color.white;
-    private GameObject selectedShape;
+    [Header("Simple Tap")]
+    [SerializeField] private GameObject[] shapePrefabs;
+    private Color _selectedColor = Color.white;
+    private GameObject _selectedShape;
 
-    private float lastTapTime = 0f;
-    private float doubleTapThreshold = 0.3f;
+    [Header("Double Tap")]
+    private float _lastTapTime = 0f;
+    private float _doubleTapThreshold = 0.3f;
 
+    [Header("Press and Drag")]
     private GameObject draggedObject = null;
+
+    [Header("Swipe")]
+    private float swipeThreshold = 0.3f;
+    private Vector2 touchStartPos;
+    private bool isSwipe = false;
+    [SerializeField] private GameObject trailPrefab;
+    private GameObject activeTrail;
+
+    private List<GameObject> spawnedShapes = new List<GameObject>();
 
     void Update()
     {
@@ -19,57 +32,109 @@ public class ExampleClass : MonoBehaviour
             Vector3 touchPosition = Camera.main.ScreenToWorldPoint(touch.position);
             touchPosition.z = 0;
 
-            if (touch.phase == TouchPhase.Began)
+            switch (touch.phase)
             {
-                RaycastHit2D hit = Physics2D.Raycast(touchPosition, Vector2.zero);
-                if (hit.collider != null)
-                {
-                    draggedObject = hit.collider.gameObject;
-                }
-                else
-                {
-                    if (Time.time - lastTapTime < doubleTapThreshold)
+                case TouchPhase.Began:
+                    touchStartPos = touch.position;
+                    isSwipe = false;
+
+                    Collider2D hitCollider = Physics2D.OverlapPoint(touchPosition);
+                    if (hitCollider != null)
                     {
-                        TryDestroyShape(touchPosition);
+                        if (Time.time - _lastTapTime < _doubleTapThreshold)
+                        {
+                            TryDestroyShape(hitCollider.gameObject);
+                            return;
+                        }
+
+                        draggedObject = hitCollider.gameObject;
                     }
                     else
                     {
                         SpawnShape(touchPosition);
                     }
-                    lastTapTime = Time.time;
-                }
-            }
-            else if (touch.phase == TouchPhase.Moved && draggedObject != null)
-            {
-                draggedObject.transform.position = touchPosition;
-            }
-            else if (touch.phase == TouchPhase.Ended)
-            {
-                draggedObject = null;
+
+                    _lastTapTime = Time.time;
+
+                    CreateTrail(touchPosition);
+                    break;
+
+                case TouchPhase.Moved:
+                    if (draggedObject != null)
+                    {
+                        draggedObject.transform.position = touchPosition;
+                    }
+                    if (activeTrail != null)
+                    {
+                        activeTrail.transform.position = touchPosition;
+                    }
+                    if (Vector2.Distance(touch.position, touchStartPos) > Screen.width * swipeThreshold)
+                    {
+                        isSwipe = true;
+                    }
+                    break;
+                case TouchPhase.Ended:
+                    if (isSwipe)
+                    {
+                        DestroyAllShapes();
+                    }
+                    draggedObject = null;
+
+                    if (activeTrail != null)
+                    {
+                        Destroy(activeTrail, 0.5f);
+                    }
+                    break;
             }
         }
     }
 
     void SpawnShape(Vector3 position)
     {
-        if (selectedShape != null)
+        if (_selectedShape != null)
         {
-            GameObject newShape = Instantiate(selectedShape, position, transform.rotation);
-            newShape.GetComponent<SpriteRenderer>().color = selectedColor;
+            GameObject newShape = Instantiate(_selectedShape, position, Quaternion.identity);
+            newShape.GetComponent<SpriteRenderer>().color = _selectedColor;
+            spawnedShapes.Add(newShape);
         }
     }
-    void TryDestroyShape(Vector3 position)
+
+    void TryDestroyShape(GameObject shape)
     {
-        Collider2D hitCollider = Physics2D.OverlapPoint(position);
-        if (hitCollider != null)
+        if (spawnedShapes.Contains(shape))
         {
-            Destroy(hitCollider.gameObject);
+            spawnedShapes.Remove(shape);
+            Destroy(shape);
+        }
+    }
+
+    void DestroyAllShapes()
+    {
+        for (int i = spawnedShapes.Count - 1; i >= 0; i--)
+        {
+            Destroy(spawnedShapes[i]);
+        }
+        spawnedShapes.Clear();
+    }
+
+    void CreateTrail(Vector3 position)
+    {
+        if (trailPrefab != null)
+        {
+            activeTrail = Instantiate(trailPrefab, position, Quaternion.identity);
+            TrailRenderer trail = activeTrail.GetComponent<TrailRenderer>();
+
+            if (trail != null)
+            {
+                trail.startColor = _selectedColor;
+                trail.endColor = new Color(_selectedColor.r, _selectedColor.g, _selectedColor.b, 0);
+            }
         }
     }
 
     public void SetShape(int shapeIndex)
     {
-        selectedShape = shapePrefabs[shapeIndex];
+        _selectedShape = shapePrefabs[shapeIndex];
     }
 
     public void SetColorFromButton(string colorName)
@@ -77,23 +142,23 @@ public class ExampleClass : MonoBehaviour
         switch (colorName.ToLower())
         {
             case "rojo":
-                selectedColor = Color.red;
+                _selectedColor = Color.red;
                 break;
             case "azul":
-                selectedColor = Color.blue;
+                _selectedColor = Color.blue;
                 break;
             case "verde":
-                selectedColor = Color.green;
+                _selectedColor = Color.green;
                 break;
             case "negro":
-                selectedColor = Color.black;
+                _selectedColor = Color.black;
                 break;
             case "blanco":
-                selectedColor = Color.white;
+                _selectedColor = Color.white;
                 break;
             default:
-                Debug.LogWarning("Color no reconocido, usando blanco por defecto.");
-                selectedColor = Color.white;
+                Debug.Log("Color no reconocido, usando blanco por defecto.");
+                _selectedColor = Color.white;
                 break;
         }
     }

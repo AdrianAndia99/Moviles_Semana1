@@ -1372,6 +1372,8 @@ MonoBehaviour:
   - {fileID: 5306943395567967705, guid: dc040604334e4134485f73e4bcb63d07, type: 3}
   - {fileID: 1273616031135409681, guid: 5fc6b6ec562eacf4e883c8eabfdb5698, type: 3}
   - {fileID: 1748976187074110142, guid: f6a11a1e58e70eb4293e78c6ec699e8d, type: 3}
+  trailPrefab: {fileID: 2264641822382542763, guid: 345a6193a858ec14cb1944357b908f30,
+    type: 3}
 --- !u!4 &1697113299
 Transform:
   m_ObjectHideFlags: 0
