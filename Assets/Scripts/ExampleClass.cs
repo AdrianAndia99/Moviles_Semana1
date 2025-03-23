@@ -52,6 +52,7 @@ public class ExampleClass : MonoBehaviour
                     else
                     {
                         SpawnShape(touchPosition);
+                        CreateTrail(touchPosition);
                     }
 
                     _lastTapTime = Time.time;
