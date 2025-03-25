@@ -1,0 +1,46 @@
+{
+    "name": "InputMoviles",
+    "maps": [
+        {
+            "name": "Touch",
+            "id": "0bf154d9-3e7e-4d75-8d8f-5cdad16e49d0",
+            "actions": [
+                {
+                    "name": "SimpleTouch",
+                    "type": "Value",
+                    "id": "e83a0099-c77c-4463-95d8-a44f1297a93d",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "cf4691e0-3d88-4368-a24f-09900b4ad11e",
+                    "path": "<Touchscreen>/primaryTouch/delta",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "SimpleTouch",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": [
+        {
+            "name": "Moviles",
+            "bindingGroup": "Moviles",
+            "devices": [
+                {
+                    "devicePath": "<Touchscreen>",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
+        }
+    ]
+}
