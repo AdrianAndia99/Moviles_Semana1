@@ -1,0 +1,54 @@
+{
+    "name": "InputSystem",
+    "maps": [
+        {
+            "name": "Touch",
+            "id": "aee373e9-6402-484c-b98a-44984a7805a8",
+            "actions": [
+                {
+                    "name": "PrimaryTouch",
+                    "type": "Value",
+                    "id": "6af4864f-6c38-4cda-a9ec-3bf94c795bc7",
+                    "expectedControlType": "Touch",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "PrimaryPosition",
+                    "type": "Value",
+                    "id": "6fdf3a0d-c094-4abb-9ff9-8796f91b3e7b",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "8243cf72-c208-4335-b928-426e13d2d045",
+                    "path": "<Touchscreen>/primaryTouch",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "PrimaryTouch",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1758b315-4425-4401-9d9e-64ca326a6826",
+                    "path": "<Touchscreen>/position",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "PrimaryPosition",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

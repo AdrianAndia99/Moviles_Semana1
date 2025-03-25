@@ -1,106 +1,151 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class ExampleClass : MonoBehaviour
 {
-    [Header("Simple Tap")]
+    [Header("Prefabs")]
     [SerializeField] private GameObject[] shapePrefabs;
-    private Color _selectedColor = Color.white;
-    private GameObject _selectedShape;
+    [SerializeField] private GameObject trailPrefab;
 
-    [Header("Double Tap")]
+    [Header("Input Settings")]
+    [SerializeField] private InputActionAsset inputActions;
+    [SerializeField] private float doubleTapThreshold = 0.3f;
+    [SerializeField] private float swipeThreshold = 50f; // En píxeles
+
+    [Header("Current Selection")]
+    [SerializeField] private Color _selectedColor = Color.white;
+    [SerializeField] private GameObject _selectedShape;
+
     private float _lastTapTime = 0f;
-    private float _doubleTapThreshold = 0.3f;
-
-    [Header("Press and Drag")]
     private GameObject draggedObject = null;
-
-    [Header("Swipe")]
-    private float swipeThreshold = 0.3f;
     private Vector2 touchStartPos;
     private bool isSwipe = false;
-    [SerializeField] private GameObject trailPrefab;
     private GameObject activeTrail;
-
     private List<GameObject> spawnedShapes = new List<GameObject>();
 
-    void Update()
+    private InputAction primaryTouchAction;
+    private InputAction primaryPositionAction;
+
+    private void Awake()
     {
-        if (Input.touchCount > 0)
+        // Configurar acciones de input
+        var touchMap = inputActions.FindActionMap("Touch");
+        primaryTouchAction = touchMap.FindAction("PrimaryTouch");
+        primaryPositionAction = touchMap.FindAction("PrimaryPosition");
+
+        // Asignar callbacks
+        primaryTouchAction.started += OnTouchStarted;
+        primaryTouchAction.performed += OnTouchPerformed;
+        primaryTouchAction.canceled += OnTouchCanceled;
+    }
+
+    private void OnEnable()
+    {
+        primaryTouchAction.Enable();
+        primaryPositionAction.Enable();
+    }
+
+    private void OnDisable()
+    {
+        primaryTouchAction.Disable();
+        primaryPositionAction.Disable();
+
+        // Limpiar callbacks
+        primaryTouchAction.started -= OnTouchStarted;
+        primaryTouchAction.performed -= OnTouchPerformed;
+        primaryTouchAction.canceled -= OnTouchCanceled;
+    }
+
+    private void OnTouchStarted(InputAction.CallbackContext context)
+    {
+        Vector2 touchPosition = primaryPositionAction.ReadValue<Vector2>();
+        Vector3 worldPosition = Camera.main.ScreenToWorldPoint(touchPosition);
+        worldPosition.z = 0;
+
+        touchStartPos = touchPosition;
+        isSwipe = false;
+
+        Collider2D hitCollider = Physics2D.OverlapPoint(worldPosition);
+        if (hitCollider != null)
         {
-            Touch touch = Input.GetTouch(0);
-            Vector3 touchPosition = Camera.main.ScreenToWorldPoint(touch.position);
-            touchPosition.z = 0;
-
-            switch (touch.phase)
+            // Doble tap para eliminar
+            if (Time.time - _lastTapTime < doubleTapThreshold)
             {
-                case TouchPhase.Began:
-                    touchStartPos = touch.position;
-                    isSwipe = false;
+                TryDestroyShape(hitCollider.gameObject);
+                return;
+            }
 
-                    Collider2D hitCollider = Physics2D.OverlapPoint(touchPosition);
-                    if (hitCollider != null)
-                    {
-                        if (Time.time - _lastTapTime < _doubleTapThreshold)
-                        {
-                            TryDestroyShape(hitCollider.gameObject);
-                            return;
-                        }
+            // Comenzar arrastre
+            draggedObject = hitCollider.gameObject;
+        }
+        else
+        {
+            // Crear nueva forma si no se tocó un objeto existente
+            SpawnShape(worldPosition);
+            CreateTrail(worldPosition);
+        }
 
-                        draggedObject = hitCollider.gameObject;
-                    }
-                    else
-                    {
-                        SpawnShape(touchPosition);
-                        CreateTrail(touchPosition);
-                    }
+        _lastTapTime = Time.time;
+    }
 
-                    _lastTapTime = Time.time;
+    private void OnTouchPerformed(InputAction.CallbackContext context)
+    {
+        if (draggedObject != null || activeTrail != null)
+        {
+            Vector2 touchPosition = primaryPositionAction.ReadValue<Vector2>();
+            Vector3 worldPosition = Camera.main.ScreenToWorldPoint(touchPosition);
+            worldPosition.z = 0;
 
-                    CreateTrail(touchPosition);
-                    break;
+            if (draggedObject != null)
+            {
+                draggedObject.transform.position = worldPosition;
+            }
 
-                case TouchPhase.Moved:
-                    if (draggedObject != null)
-                    {
-                        draggedObject.transform.position = touchPosition;
-                    }
-                    if (activeTrail != null)
-                    {
-                        activeTrail.transform.position = touchPosition;
-                    }
-                    if (Vector2.Distance(touch.position, touchStartPos) > Screen.width * swipeThreshold)
-                    {
-                        isSwipe = true;
-                    }
-                    break;
-                case TouchPhase.Ended:
-                    if (isSwipe)
-                    {
-                        DestroyAllShapes();
-                    }
-                    draggedObject = null;
+            if (activeTrail != null)
+            {
+                activeTrail.transform.position = worldPosition;
+            }
 
-                    if (activeTrail != null)
-                    {
-                        Destroy(activeTrail, 0.5f);
-                    }
-                    break;
+            // Detectar swipe
+            if (Vector2.Distance(touchPosition, touchStartPos) > swipeThreshold)
+            {
+                isSwipe = true;
             }
         }
     }
 
-    void SpawnShape(Vector3 position)
+    private void OnTouchCanceled(InputAction.CallbackContext context)
+    {
+        if (isSwipe)
+        {
+            DestroyAllShapes();
+        }
+
+        draggedObject = null;
+
+        if (activeTrail != null)
+        {
+            Destroy(activeTrail, 0.5f);
+            activeTrail = null;
+        }
+    }
+
+    private void SpawnShape(Vector3 position)
     {
         if (_selectedShape != null)
         {
             GameObject newShape = Instantiate(_selectedShape, position, Quaternion.identity);
-            newShape.GetComponent<SpriteRenderer>().color = _selectedColor;
+            SpriteRenderer renderer = newShape.GetComponent<SpriteRenderer>();
+            if (renderer != null)
+            {
+                renderer.color = _selectedColor;
+            }
             spawnedShapes.Add(newShape);
         }
     }
 
-    void TryDestroyShape(GameObject shape)
+    private void TryDestroyShape(GameObject shape)
     {
         if (spawnedShapes.Contains(shape))
         {
@@ -109,16 +154,19 @@ public class ExampleClass : MonoBehaviour
         }
     }
 
-    void DestroyAllShapes()
+    private void DestroyAllShapes()
     {
-        for (int i = spawnedShapes.Count - 1; i >= 0; i--)
+        foreach (var shape in spawnedShapes)
         {
-            Destroy(spawnedShapes[i]);
+            if (shape != null)
+            {
+                Destroy(shape);
+            }
         }
         spawnedShapes.Clear();
     }
 
-    void CreateTrail(Vector3 position)
+    private void CreateTrail(Vector3 position)
     {
         if (trailPrefab != null)
         {
@@ -135,30 +183,43 @@ public class ExampleClass : MonoBehaviour
 
     public void SetShape(int shapeIndex)
     {
-        _selectedShape = shapePrefabs[shapeIndex];
+        if (shapeIndex >= 0 && shapeIndex < shapePrefabs.Length)
+        {
+            _selectedShape = shapePrefabs[shapeIndex];
+        }
+    }
+
+    public void SetColor(Color newColor)
+    {
+        _selectedColor = newColor;
     }
 
     public void SetColorFromButton(string colorName)
     {
         switch (colorName.ToLower())
         {
+            case "red":
             case "rojo":
                 _selectedColor = Color.red;
                 break;
+            case "blue":
             case "azul":
                 _selectedColor = Color.blue;
                 break;
+            case "green":
             case "verde":
                 _selectedColor = Color.green;
                 break;
+            case "black":
             case "negro":
                 _selectedColor = Color.black;
                 break;
+            case "white":
             case "blanco":
                 _selectedColor = Color.white;
                 break;
             default:
-                Debug.Log("Color no reconocido, usando blanco por defecto.");
+                Debug.LogWarning($"Color no reconocido: {colorName}, usando blanco por defecto.");
                 _selectedColor = Color.white;
                 break;
         }
