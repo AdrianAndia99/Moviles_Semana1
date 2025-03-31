@@ -11,8 +11,7 @@ public class ExampleClass : MonoBehaviour
     [Header("Input Settings")]
     [SerializeField] private InputActionAsset inputActions;
     [SerializeField] private float doubleTapThreshold = 0.3f;
-    [SerializeField] private float swipeThreshold = 50f; // En píxeles
-
+    [SerializeField] private float swipeThreshold = 50f;
     [Header("Current Selection")]
     [SerializeField] private Color _selectedColor = Color.white;
     [SerializeField] private GameObject _selectedShape;
@@ -29,12 +28,10 @@ public class ExampleClass : MonoBehaviour
 
     private void Awake()
     {
-        // Configurar acciones de input
         var touchMap = inputActions.FindActionMap("Touch");
         primaryTouchAction = touchMap.FindAction("PrimaryTouch");
         primaryPositionAction = touchMap.FindAction("PrimaryPosition");
 
-        // Asignar callbacks
         primaryTouchAction.started += OnTouchStarted;
         primaryTouchAction.performed += OnTouchPerformed;
         primaryTouchAction.canceled += OnTouchCanceled;
@@ -51,7 +48,6 @@ public class ExampleClass : MonoBehaviour
         primaryTouchAction.Disable();
         primaryPositionAction.Disable();
 
-        // Limpiar callbacks
         primaryTouchAction.started -= OnTouchStarted;
         primaryTouchAction.performed -= OnTouchPerformed;
         primaryTouchAction.canceled -= OnTouchCanceled;
@@ -69,49 +65,45 @@ public class ExampleClass : MonoBehaviour
         Collider2D hitCollider = Physics2D.OverlapPoint(worldPosition);
         if (hitCollider != null)
         {
-            // Doble tap para eliminar
             if (Time.time - _lastTapTime < doubleTapThreshold)
             {
                 TryDestroyShape(hitCollider.gameObject);
                 return;
             }
 
-            // Comenzar arrastre
             draggedObject = hitCollider.gameObject;
         }
         else
         {
-            // Crear nueva forma si no se tocó un objeto existente
             SpawnShape(worldPosition);
-            CreateTrail(worldPosition);
         }
 
         _lastTapTime = Time.time;
     }
 
+
     private void OnTouchPerformed(InputAction.CallbackContext context)
     {
-        if (draggedObject != null || activeTrail != null)
+        Vector2 touchPosition = primaryPositionAction.ReadValue<Vector2>();
+        Vector3 worldPosition = Camera.main.ScreenToWorldPoint(touchPosition);
+        worldPosition.z = 0;
+
+        float swipeDistance = Vector2.Distance(touchPosition, touchStartPos);
+
+        if (!isSwipe && swipeDistance > swipeThreshold)
         {
-            Vector2 touchPosition = primaryPositionAction.ReadValue<Vector2>();
-            Vector3 worldPosition = Camera.main.ScreenToWorldPoint(touchPosition);
-            worldPosition.z = 0;
+            isSwipe = true;
+            CreateTrail(worldPosition);
+        }
 
-            if (draggedObject != null)
-            {
-                draggedObject.transform.position = worldPosition;
-            }
+        if (draggedObject != null)
+        {
+            draggedObject.transform.position = worldPosition;
+        }
 
-            if (activeTrail != null)
-            {
-                activeTrail.transform.position = worldPosition;
-            }
-
-            // Detectar swipe
-            if (Vector2.Distance(touchPosition, touchStartPos) > swipeThreshold)
-            {
-                isSwipe = true;
-            }
+        if (isSwipe && activeTrail != null)
+        {
+            activeTrail.transform.position = worldPosition;
         }
     }
 
@@ -129,7 +121,10 @@ public class ExampleClass : MonoBehaviour
             Destroy(activeTrail, 0.5f);
             activeTrail = null;
         }
+
+        isSwipe = false;
     }
+
 
     private void SpawnShape(Vector3 position)
     {
